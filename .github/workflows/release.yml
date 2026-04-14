@@ -1,0 +1,80 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            artifact: convert_pdf-windows.exe
+            bin: dist/convert_pdf.exe
+          - os: macos-13        # x86_64
+            artifact: convert_pdf-macos-x86_64
+            bin: dist/convert_pdf
+          - os: macos-latest    # arm64 (Apple Silicon)
+            artifact: convert_pdf-macos-arm64
+            bin: dist/convert_pdf
+          - os: ubuntu-latest
+            artifact: convert_pdf-linux
+            bin: dist/convert_pdf
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install "pyinstaller>=6.0"
+
+      - name: Build with PyInstaller
+        run: pyinstaller convert_pdf.spec
+
+      - name: Rename binary
+        shell: bash
+        run: cp ${{ matrix.bin }} ${{ matrix.artifact }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}
+
+  release:
+    name: Publish Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: artifacts/*
