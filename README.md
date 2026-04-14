@@ -16,8 +16,7 @@ Pre-built single-file binaries are available on the [Releases](../../releases) p
 | File | Platform |
 |------|----------|
 | `convert_pdf-windows.exe` | Windows x86_64 |
-| `convert_pdf-macos-arm64` | macOS Apple Silicon |
-| `convert_pdf-macos-x86_64` | macOS Intel |
+| `convert_pdf-macos-arm64` | macOS (Apple Silicon & Intel via Rosetta 2) |
 | `convert_pdf-linux` | Linux x86_64 |
 
 On macOS/Linux, make the binary executable after download:

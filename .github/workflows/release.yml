@@ -16,10 +16,7 @@ jobs:
           - os: windows-latest
             artifact: convert_pdf-windows.exe
             bin: dist/convert_pdf.exe
-          - os: macos-13        # x86_64
-            artifact: convert_pdf-macos-x86_64
-            bin: dist/convert_pdf
-          - os: macos-latest    # arm64 (Apple Silicon)
+          - os: macos-latest
             artifact: convert_pdf-macos-arm64
             bin: dist/convert_pdf
           - os: ubuntu-latest
