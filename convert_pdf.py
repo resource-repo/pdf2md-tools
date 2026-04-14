@@ -13,11 +13,17 @@ PDF 转 Markdown 转换脚本
     OPENAI_API_KEY    API 密钥
     OPENAI_BASE_URL   Base URL
     OPENAI_MODEL      模型名称
+    HF_ENDPOINT       HuggingFace 镜像地址（默认: https://hf-mirror.com）
 """
 
-import argparse
 import os
 import sys
+
+# Inject environment variables before any library imports so that
+# huggingface_hub and torch pick them up during their own initialization.
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
+
+import argparse
 from pathlib import Path
 
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
@@ -47,7 +53,19 @@ def parse_args():
         default=os.environ.get("OPENAI_MODEL", DEFAULT_OPENAI_MODEL),
         help=f"模型名称（默认: {DEFAULT_OPENAI_MODEL}，也可通过 OPENAI_MODEL 环境变量设置）",
     )
-    return parser.parse_args()
+    args = parser.parse_args()
+
+    missing = []
+    if not args.openai_api_key:
+        missing.append("--openai_api_key (or OPENAI_API_KEY env var)")
+    if not args.openai_base_url:
+        missing.append("--openai_base_url (or OPENAI_BASE_URL env var)")
+    if not args.openai_model:
+        missing.append("--openai_model (or OPENAI_MODEL env var)")
+    if missing:
+        parser.error("the following LLM settings are required:\n  " + "\n  ".join(missing))
+
+    return args
 
 
 def convert(args) -> None:
@@ -60,13 +78,6 @@ def convert(args) -> None:
         print(
             "Error: failed to import marker.\n"
             "Install it with: pip install git+https://github.com/the-loki/marker.git@v1.10.2-fix",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    if not args.openai_api_key:
-        print(
-            "Error: --openai_api_key or OPENAI_API_KEY environment variable is required.",
             file=sys.stderr,
         )
         sys.exit(1)
