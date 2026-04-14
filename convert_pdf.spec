@@ -1,5 +1,5 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 block_cipher = None
 
@@ -7,58 +7,73 @@ all_datas = []
 all_binaries = []
 all_hiddenimports = []
 
-# Required packages — no silent catch, fail loudly if missing
+
+def collect(pkg):
+    """Collect data/binaries/hiddenimports + ALL submodules. Fails loudly."""
+    d, b, h = collect_all(pkg)
+    all_datas.extend(d)
+    all_binaries.extend(b)
+    all_hiddenimports.extend(h)
+    all_hiddenimports.extend(collect_submodules(pkg))
+
+
+def try_collect(pkg):
+    """Same as collect() but silently skips if the package is not installed."""
+    try:
+        collect(pkg)
+    except Exception:
+        pass
+
+
+# ── Required packages ────────────────────────────────────────────────────────
 for pkg in [
     "marker",
     "surya",
     "transformers",
     "tokenizers",
     "huggingface_hub",
-]:
-    d, b, h = collect_all(pkg)
-    all_datas += d
-    all_binaries += b
-    all_hiddenimports += h
-
-# Optional packages — present depending on platform / install
-for pkg in [
     "PIL",
-    "cv2",
     "pydantic",
-    "pydantic_core",
+    "pydantic_settings",
+    "openai",
+    "pdftext",
+    "pypdfium2",
+    "markdownify",
+    "markdown2",
+    "filetype",
     "ftfy",
     "regex",
-    "filetype",
+    "rapidfuzz",
+    "tqdm",
+    "click",
+    "sklearn",
+    "cv2",
+    "dotenv",
 ]:
-    try:
-        d, b, h = collect_all(pkg)
-        all_datas += d
-        all_binaries += b
-        all_hiddenimports += h
-    except Exception:
-        pass
+    collect(pkg)
+
+# ── Optional packages ─────────────────────────────────────────────────────────
+for pkg in [
+    "mammoth",
+    "openpyxl",
+    "pptx",
+    "ebooklib",
+    "weasyprint",
+    "anthropic",
+    "google.genai",
+    "torch",
+    "torchvision",
+    "torchaudio",
+]:
+    try_collect(pkg)
+
 
 a = Analysis(
     ["convert_pdf.py"],
     pathex=[],
     binaries=all_binaries,
     datas=all_datas,
-    hiddenimports=all_hiddenimports + [
-        # explicit marker entry points used at runtime
-        "marker",
-        "marker.converters",
-        "marker.converters.pdf",
-        "marker.models",
-        "marker.output",
-        "marker.config",
-        "marker.config.parser",
-        "marker.services",
-        "marker.services.openai",
-        # torch
-        "torch",
-        "torchvision",
-        "torchaudio",
-    ],
+    hiddenimports=all_hiddenimports,
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
