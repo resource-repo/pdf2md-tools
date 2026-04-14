@@ -31,17 +31,27 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Cache pip
+      - name: Get Python site-packages path
+        id: site
+        shell: bash
+        run: echo "path=$(python -c 'import site; print(site.getsitepackages()[0])')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache site-packages
+        id: cache-site
         uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: pip-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('requirements.txt') }}
-          restore-keys: pip-${{ runner.os }}-${{ runner.arch }}-
+          path: ${{ steps.site.outputs.path }}
+          key: site-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('requirements.txt') }}
 
       - name: Install dependencies
+        if: steps.cache-site.outputs.cache-hit != 'true'
         run: |
           pip install -r requirements.txt
           pip install "pyinstaller>=6.0"
+
+      - name: Install PyInstaller (cache hit)
+        if: steps.cache-site.outputs.cache-hit == 'true'
+        run: pip install "pyinstaller>=6.0"
 
       - name: Build with PyInstaller
         run: pyinstaller convert_pdf.spec

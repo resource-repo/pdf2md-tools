@@ -1,19 +1,27 @@
 # -*- mode: python ; coding: utf-8 -*-
-from PyInstaller.utils.hooks import collect_all, collect_data_files
+from PyInstaller.utils.hooks import collect_all
 
 block_cipher = None
 
-# Collect code + data from packages that use dynamic imports or ship data files
 all_datas = []
 all_binaries = []
 all_hiddenimports = []
 
+# Required packages — no silent catch, fail loudly if missing
 for pkg in [
     "marker",
     "surya",
     "transformers",
     "tokenizers",
     "huggingface_hub",
+]:
+    d, b, h = collect_all(pkg)
+    all_datas += d
+    all_binaries += b
+    all_hiddenimports += h
+
+# Optional packages — present depending on platform / install
+for pkg in [
     "PIL",
     "cv2",
     "pydantic",
@@ -36,11 +44,17 @@ a = Analysis(
     binaries=all_binaries,
     datas=all_datas,
     hiddenimports=all_hiddenimports + [
-        "marker.services.openai",
+        # explicit marker entry points used at runtime
+        "marker",
+        "marker.converters",
         "marker.converters.pdf",
         "marker.models",
         "marker.output",
+        "marker.config",
         "marker.config.parser",
+        "marker.services",
+        "marker.services.openai",
+        # torch
         "torch",
         "torchvision",
         "torchaudio",
@@ -49,7 +63,6 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
-        # remove heavy extras that marker does not need at runtime
         "matplotlib",
         "notebook",
         "ipython",

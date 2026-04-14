@@ -26,6 +26,15 @@ os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 import argparse
 from pathlib import Path
 
+try:
+    from marker.converters.pdf import PdfConverter
+    from marker.models import create_model_dict
+    from marker.output import text_from_rendered
+    from marker.config.parser import ConfigParser
+except ImportError as _marker_import_error:
+    PdfConverter = None
+    _marker_import_error_msg = str(_marker_import_error)
+
 DEFAULT_OPENAI_BASE_URL = "https://api.openai.com/v1"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini"
 
@@ -69,14 +78,9 @@ def parse_args():
 
 
 def convert(args) -> None:
-    try:
-        from marker.converters.pdf import PdfConverter
-        from marker.models import create_model_dict
-        from marker.output import text_from_rendered
-        from marker.config.parser import ConfigParser
-    except ImportError:
+    if PdfConverter is None:
         print(
-            "Error: failed to import marker.\n"
+            f"Error: failed to import marker ({_marker_import_error_msg}).\n"
             "Install it with: pip install git+https://github.com/the-loki/marker.git@v1.10.2-fix",
             file=sys.stderr,
         )
